@@ -48,6 +48,7 @@ float lastFrame = 0.0f;
 
 // lighting
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+bool autoTintLighting = true;
 
 // Material properties
 float shininess = 64.0f;
@@ -276,11 +277,24 @@ int main() {
             lightingShader.use();
             lightingShader.setVec3("light.position", lightPos);
             lightingShader.setVec3("viewPos", camera.Position);
+            lightingShader.setVec3("light.specular", lightColorValues[0], lightColorValues[1], lightColorValues[2]);
 
             // light properties
-            lightingShader.setVec3("light.ambient", lightAmbient[0], lightAmbient[1], lightAmbient[2]);
-            lightingShader.setVec3("light.diffuse", lightDiffuse[0], lightDiffuse[1], lightDiffuse[2]);
-            lightingShader.setVec3("light.specular", lightColorValues[0], lightColorValues[1], lightColorValues[2]);
+            if (autoTintLighting) {
+                lightingShader.setVec3("light.ambient",
+                    lightAmbient[0] * lightColorValues[0],
+                    lightAmbient[1] * lightColorValues[1],
+                    lightAmbient[2] * lightColorValues[2]
+                );
+                lightingShader.setVec3("light.diffuse",
+                    lightDiffuse[0] * lightColorValues[0],
+                    lightDiffuse[1] * lightColorValues[1],
+                    lightDiffuse[2] * lightColorValues[2]);
+            }
+            else {
+                lightingShader.setVec3("light.ambient", lightAmbient[0], lightAmbient[1], lightAmbient[2]);
+                lightingShader.setVec3("light.diffuse", lightDiffuse[0], lightDiffuse[1], lightDiffuse[2]);
+            }
 
             // material properties
             lightingShader.setFloat("material.shininess", shininess);
@@ -611,8 +625,48 @@ void renderImGUIWindows(const unsigned int texture_color_buffer) {
     // Light Editor
     ImGui::Begin("Light Properties");
     ImGui::ColorEdit3("Light Color", lightColorValues);
-    ImGui::ColorEdit3("Ambient", lightAmbient);
-    ImGui::ColorEdit3("Diffuse", lightDiffuse);
+
+    ImGui::Checkbox("Auto Tint Lighting", &autoTintLighting);
+
+    if (autoTintLighting) {
+        // Show sliders for intensity instead of full color pickers
+        float ambientIntensity = (lightAmbient[0] + lightAmbient[1] + lightAmbient[2]) / 3.0f;
+        float diffuseIntensity = (lightDiffuse[0] + lightDiffuse[1] + lightDiffuse[2]) / 3.0f;
+
+        // Allow user to adjust intensity only, color comes from main light
+        if (ImGui::SliderFloat("Ambient Intensity", &ambientIntensity, 0.0f, 1.0f)) {
+            lightAmbient[0] = ambientIntensity;
+            lightAmbient[1] = ambientIntensity;
+            lightAmbient[2] = ambientIntensity;
+        }
+
+        if (ImGui::SliderFloat("Diffuse Intensity", &diffuseIntensity, 0.0f, 1.0f)) {
+            lightDiffuse[0] = diffuseIntensity;
+            lightDiffuse[1] = diffuseIntensity;
+            lightDiffuse[2] = diffuseIntensity;
+        }
+
+        // Display preview colors (tinted by light color)
+        ImGui::ColorButton("Ambient Preview",
+            ImVec4(lightAmbient[0] * lightColorValues[0],
+                   lightAmbient[1] * lightColorValues[1],
+                   lightAmbient[2] * lightColorValues[2], 1.0f),
+            0, ImVec2(50, 20));
+        ImGui::SameLine();
+        ImGui::Text("Ambient Preview");
+
+        ImGui::ColorButton("Diffuse Preview",
+            ImVec4(lightDiffuse[0] * lightColorValues[0],
+                   lightDiffuse[1] * lightColorValues[1],
+                   lightDiffuse[2] * lightColorValues[2], 1.0f),
+            0, ImVec2(50, 20));
+        ImGui::SameLine();
+        ImGui::Text("Diffuse Preview");
+    } else {
+        // Original controls for manual color selection
+        ImGui::ColorEdit3("Ambient", lightAmbient);
+        ImGui::ColorEdit3("Diffuse", lightDiffuse);
+    }
 
     ImGui::Text("Light Position");
     ImGui::SliderFloat("X", &lightPos.x, -5.0f, 5.0f);
@@ -642,7 +696,5 @@ void renderImGUIWindows(const unsigned int texture_color_buffer) {
     ImGui::BulletText("Alt - Toggle mouse lock");
     ImGui::BulletText("Shift - Move faster");
     ImGui::BulletText("Esc - Exit application");
-
-    ImGui::Separator();
     ImGui::End();
 }
