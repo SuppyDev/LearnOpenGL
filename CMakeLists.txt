@@ -55,9 +55,15 @@ add_executable(DiffuseMaps
         ${COMMON_SOURCES}
 )
 
+add_executable(SpecularMaps
+        apps/specular_maps.cpp
+        ${COMMON_SOURCES}
+)
+
 set(ALL_EXECUTABLES
         MainApplication
         DiffuseMaps
+        SpecularMaps
 )
 
 # Function to recursively copy ALL resource files including subdirectories
