@@ -51,12 +51,12 @@ add_executable(MainApplication
 )
 
 add_executable(DiffuseMaps
-        apps/diffuse_maps.cpp
+        apps/lighting_maps/diffuse_maps.cpp
         ${COMMON_SOURCES}
 )
 
 add_executable(SpecularMaps
-        apps/specular_maps.cpp
+        apps/lighting_maps/specular_maps.cpp
         ${COMMON_SOURCES}
 )
 
