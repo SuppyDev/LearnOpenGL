@@ -76,7 +76,7 @@ int main() {
     glEnable(GL_DEPTH_TEST);
 
     // build and compile the shader program
-    const Shader lightingShader("resources/shaders/lighting/specular_material.vert", "resources/shaders/lighting/specular_material.frag");
+    const Shader lightingShader("resources/shaders/material.vert", "resources/shaders/material.frag");
     const Shader lightCubeShader("resources/shaders/lighting/lighting_cube.vert", "resources/shaders/lighting/lighting_cube.frag");
 
     // set up cube vertices
@@ -199,9 +199,11 @@ int main() {
         lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 
         // material properties
+        lightingShader.setVec3("material.color", glm::vec3(1.0f, 1.0f, 0.0f));
+        lightingShader.setFloat("material.tintStrength", 1.0f);
         lightingShader.setInt("material.diffuse", 0);
         lightingShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
-        lightingShader.setFloat("material.shininess", 64.0f);
+        lightingShader.setFloat("material.shininess", 128.0f);
 
         // view/projection transformations
         glm::mat4 projection = glm::perspective(
