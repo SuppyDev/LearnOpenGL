@@ -59,11 +59,18 @@ add_executable(SpecularMaps
         apps/lighting_maps/specular_maps.cpp
         ${COMMON_SOURCES}
 )
+add_executable(LightingMaps_Ex4
+        apps/lighting_maps/exercise_4.cpp
+        ${COMMON_SOURCES}
+)
 
 set(ALL_EXECUTABLES
         MainApplication
+
+        # Lighting Maps
         DiffuseMaps
         SpecularMaps
+        LightingMaps_Ex4
 )
 
 # Function to recursively copy ALL resource files including subdirectories
