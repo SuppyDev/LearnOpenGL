@@ -18,7 +18,6 @@
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xPosIn, double yPosIn);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 unsigned int loadTexture(const char* path);
 
@@ -39,6 +38,10 @@ float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = false;
 bool isCursorLocked = false;
 
+float cameraSpeedMultiplier = 3.0f;
+float cameraFov = camera.Zoom;
+float backgroundColor[3] = {0.2f, 0.2f, 0.2f};
+
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
@@ -55,7 +58,6 @@ float color[3] = { 1.0f, 1.0f, 1.0f };
 float lightColorValues[3] = { 1.0f, 1.0f, 1.0f };
 float lightAmbient[3] = { 0.2f, 0.2f, 0.2f };
 float lightDiffuse[3] = { 0.5f, 0.5f, 0.5f };
-float lightSpecular[3] = { 1.0f, 1.0f, 1.0f };
 
 // rendering flags
 bool showDemoWindow = false;
@@ -79,10 +81,9 @@ int main() {
         return -1;
     }
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(0);
+    // glfwSwapInterval(0);  // disable vsync
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
-    glfwSetScrollCallback(window, scroll_callback);
 
     // tell glfw to capture our mouse
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -267,7 +268,7 @@ int main() {
         // render
         // ------
         glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClearColor(backgroundColor[0], backgroundColor[1], backgroundColor[2], 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         if (showCube) {
@@ -279,7 +280,7 @@ int main() {
             // light properties
             lightingShader.setVec3("light.ambient", lightAmbient[0], lightAmbient[1], lightAmbient[2]);
             lightingShader.setVec3("light.diffuse", lightDiffuse[0], lightDiffuse[1], lightDiffuse[2]);
-            lightingShader.setVec3("light.specular", lightSpecular[0], lightSpecular[1], lightSpecular[2]);
+            lightingShader.setVec3("light.specular", lightColorValues[0], lightColorValues[1], lightColorValues[2]);
 
             // material properties
             lightingShader.setFloat("material.shininess", shininess);
@@ -422,7 +423,7 @@ void processInput(GLFWwindow *window) {
 
     // move faster while shift is being held
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        speedMultiplier = 3.0f;
+        speedMultiplier = cameraSpeedMultiplier;
 
     // stop app
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -471,14 +472,6 @@ void mouse_callback(GLFWwindow*, const double xPosIn, const double yPosIn) {
     camera.ProcessMouseMovement(xOffset, yOffset);
 }
 
-// glfw: whenever the mouse scroll wheel scrolls, this callback is called
-// ----------------------------------------------------------------------
-void scroll_callback(GLFWwindow*, double, const double yoffset) {
-    if (!isCursorLocked) return;
-
-    camera.ProcessMouseScroll(static_cast<float>(yoffset));
-}
-
 // utility function for loading a 2D texture from file
 // ---------------------------------------------------
 unsigned int loadTexture(char const * path)
@@ -517,6 +510,8 @@ unsigned int loadTexture(char const * path)
     return textureID;
 }
 
+// imgui: setting up all the necessary docking properties
+// -------------------------------------------------------
 void setupImGUIDocking() {
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -526,8 +521,8 @@ void setupImGUIDocking() {
     window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
     window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.2f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.8f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
     ImGui::Begin("DockSpace Demo", nullptr, window_flags);
@@ -569,6 +564,8 @@ void setupImGUIDocking() {
     ImGui::End();
 }
 
+// imgui: render all the windows ImGUI has created
+// -----------------------------------------------------------------
 void renderImGUIWindows(const unsigned int texture_color_buffer) {
     // Scene Viewport
     ImGui::Begin("Viewport");
@@ -608,7 +605,7 @@ void renderImGUIWindows(const unsigned int texture_color_buffer) {
     ImGui::ColorEdit3("Object Color", color);
     ImGui::SliderFloat("Shininess", &shininess, 1.0f, 256.0f);
     ImGui::SliderFloat("Tint Strength", &tintStrength, 0.0f, 2.0f);
-    ImGui::SliderFloat("Emission Strength", &emissionStrength, 0.0f, 100.0f);
+    ImGui::SliderFloat("Emission Strength", &emissionStrength, 0.0f, 10.0f);
     ImGui::End();
 
     // Light Editor
@@ -616,12 +613,18 @@ void renderImGUIWindows(const unsigned int texture_color_buffer) {
     ImGui::ColorEdit3("Light Color", lightColorValues);
     ImGui::ColorEdit3("Ambient", lightAmbient);
     ImGui::ColorEdit3("Diffuse", lightDiffuse);
-    ImGui::ColorEdit3("Specular", lightSpecular);
 
     ImGui::Text("Light Position");
     ImGui::SliderFloat("X", &lightPos.x, -5.0f, 5.0f);
     ImGui::SliderFloat("Y", &lightPos.y, -5.0f, 5.0f);
     ImGui::SliderFloat("Z", &lightPos.z, -5.0f, 5.0f);
+    ImGui::End();
+
+    ImGui::Begin("Camera Settings");
+    ImGui::SliderFloat("Speed Multiplier", &cameraSpeedMultiplier, 0.5f, 10.0f);
+    if (ImGui::SliderFloat("FOV", &cameraFov, 0.0f, 120.0f))
+        camera.Zoom = cameraFov;
+    ImGui::ColorEdit3("Background Color", backgroundColor);
     ImGui::End();
 
     // Statistics Window
@@ -641,10 +644,5 @@ void renderImGUIWindows(const unsigned int texture_color_buffer) {
     ImGui::BulletText("Esc - Exit application");
 
     ImGui::Separator();
-
-    ImGui::Text("Window Management:");
-    ImGui::BulletText("Drag window tabs to rearrange layout");
-    ImGui::BulletText("Drag window edges to resize");
-    ImGui::BulletText("Right-click on tab bar for options");
     ImGui::End();
 }
