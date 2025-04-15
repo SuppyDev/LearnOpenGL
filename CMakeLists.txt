@@ -32,19 +32,22 @@ FetchContent_Declare(
         GIT_TAG release-3.2.0
 )
 
-# Fetch ImGUI
-FetchContent_Declare(
-        imgui
-        GIT_REPOSITORY https://github.com/ocornut/imgui.git
-        GIT_TAG v1.91.9
-)
-
-FetchContent_MakeAvailable(SDL glfw imgui)
+FetchContent_MakeAvailable(SDL glfw)
 
 add_library(glad STATIC extern/glad/src/glad.c)
 target_include_directories(glad PUBLIC ${CMAKE_SOURCE_DIR}/extern/glad/include)
 
 # Common source files that many executables might share
+set(IMGUI_SOURCES
+        extern/imgui/imgui.cpp
+        extern/imgui/imgui_draw.cpp
+        extern/imgui/imgui_tables.cpp
+        extern/imgui/imgui_widgets.cpp
+        extern/imgui/imgui_demo.cpp
+        extern/imgui/backends/imgui_impl_glfw.cpp
+        extern/imgui/backends/imgui_impl_opengl3.cpp
+)
+
 set(COMMON_SOURCES
         extern/stb_image/src/stb_image.cpp
         src/shader.cpp
@@ -55,20 +58,31 @@ set(COMMON_SOURCES
 add_executable(MainApplication
         main.cpp
         ${COMMON_SOURCES}
+        ${IMGUI_SOURCES}
 )
 
 add_executable(DiffuseMaps
         apps/lighting_maps/diffuse_maps.cpp
         ${COMMON_SOURCES}
+        ${IMGUI_SOURCES}
 )
 
 add_executable(SpecularMaps
         apps/lighting_maps/specular_maps.cpp
         ${COMMON_SOURCES}
+        ${IMGUI_SOURCES}
 )
+
 add_executable(LightingMaps_Ex4
         apps/lighting_maps/exercise_4.cpp
         ${COMMON_SOURCES}
+        ${IMGUI_SOURCES}
+)
+
+add_executable(ImGUI_Docking
+        apps/funny_tinker/imgui_docking.cpp
+        ${COMMON_SOURCES}
+        ${IMGUI_SOURCES}
 )
 
 set(ALL_EXECUTABLES
@@ -78,6 +92,9 @@ set(ALL_EXECUTABLES
         DiffuseMaps
         SpecularMaps
         LightingMaps_Ex4
+
+        # Tinkering
+        ImGUI_Docking
 )
 
 # Function to recursively copy ALL resource files including subdirectories
@@ -146,21 +163,8 @@ set(COMMON_INCLUDES
         ${CMAKE_SOURCE_DIR}/extern
         ${CMAKE_SOURCE_DIR}/extern/glad/include
         ${CMAKE_SOURCE_DIR}/extern/stb_image/inc
-)
-
-add_library(imgui STATIC
-        ${imgui_SOURCE_DIR}/imgui.cpp
-        ${imgui_SOURCE_DIR}/imgui_draw.cpp
-        ${imgui_SOURCE_DIR}/imgui_tables.cpp
-        ${imgui_SOURCE_DIR}/imgui_widgets.cpp
-        ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
-        ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
-)
-
-target_include_directories(imgui PUBLIC
-        ${imgui_SOURCE_DIR}
-        ${imgui_SOURCE_DIR}/backends
-        ${glfw_SOURCE_DIR}/include  # <- link imgui to glfw
+        ${CMAKE_SOURCE_DIR}/extern/imgui
+        ${CMAKE_SOURCE_DIR}/extern/imgui/backends
 )
 
 # Set include directories for all executables
@@ -172,6 +176,5 @@ foreach(EXEC IN LISTS ALL_EXECUTABLES)
             PUBLIC
             glfw
             glad
-            imgui
     )
 endforeach()
