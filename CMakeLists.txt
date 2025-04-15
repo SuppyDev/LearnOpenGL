@@ -32,7 +32,14 @@ FetchContent_Declare(
         GIT_TAG release-3.2.0
 )
 
-FetchContent_MakeAvailable(SDL glfw)
+# Fetch ImGUI
+FetchContent_Declare(
+        imgui
+        GIT_REPOSITORY https://github.com/ocornut/imgui.git
+        GIT_TAG v1.91.9
+)
+
+FetchContent_MakeAvailable(SDL glfw imgui)
 
 add_library(glad STATIC extern/glad/src/glad.c)
 target_include_directories(glad PUBLIC ${CMAKE_SOURCE_DIR}/extern/glad/include)
@@ -135,9 +142,25 @@ set(COMMON_INCLUDES
         ${CMAKE_SOURCE_DIR}/inc
         ${OPENGL_INCLUDE_DIR}
         ${glfw_SOURCE_DIR}/include
+        ${glfw_SOURCE_DIR}/include/GLFW
         ${CMAKE_SOURCE_DIR}/extern
         ${CMAKE_SOURCE_DIR}/extern/glad/include
         ${CMAKE_SOURCE_DIR}/extern/stb_image/inc
+)
+
+add_library(imgui STATIC
+        ${imgui_SOURCE_DIR}/imgui.cpp
+        ${imgui_SOURCE_DIR}/imgui_draw.cpp
+        ${imgui_SOURCE_DIR}/imgui_tables.cpp
+        ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+        ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+)
+
+target_include_directories(imgui PUBLIC
+        ${imgui_SOURCE_DIR}
+        ${imgui_SOURCE_DIR}/backends
+        ${glfw_SOURCE_DIR}/include  # <- link imgui to glfw
 )
 
 # Set include directories for all executables
@@ -149,5 +172,6 @@ foreach(EXEC IN LISTS ALL_EXECUTABLES)
             PUBLIC
             glfw
             glad
+            imgui
     )
 endforeach()

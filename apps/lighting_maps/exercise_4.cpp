@@ -11,6 +11,9 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <stb_image.h>
+#include "imgui.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_opengl3.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xPosIn, double yPosIn);
@@ -70,6 +73,15 @@ int main() {
         glfwDestroyWindow(window);
         return -1;
     }
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+    // set up ImGui style
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
 
     // configure global open gl state
     // ------------------------------
@@ -181,6 +193,28 @@ int main() {
     // -----------------
     while (!glfwWindowShouldClose(window)) {
 
+        // imgui frame begin
+        // --------------------
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        // imgui UI
+        // ---------------------
+        ImGui::Begin("Shader Property Editor");
+
+        static float shininess = 64.0f;
+        static float tintStrength = 1.0f;
+        static float emissionStrength = 1.0f;
+        static float color[3] = {1.0f, 1.0f, 1.0f};
+
+        ImGui::ColorEdit3("Color", color);
+        ImGui::SliderFloat("Shininess", &shininess, 1.0f, 256.0f);
+        ImGui::SliderFloat("Tint Strength", &tintStrength, 0.0f, 2.0f);
+        ImGui::SliderFloat("Emission Strength", &emissionStrength, 0.0f, 100.0f);
+
+        ImGui::End();
+
         // per-frame time logic
         // --------------------
         const auto currentFrame = static_cast<float>(glfwGetTime());
@@ -207,10 +241,10 @@ int main() {
         lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 
         // material properties
-        lightingShader.setFloat("material.shininess", 64.0f);
-        lightingShader.setVec3("material.color", glm::vec3(1.0f));
-        lightingShader.setFloat("material.tintStrength", 1.0f);
-        lightingShader.setFloat("material.emissionStrength", 5.0f);
+        lightingShader.setFloat("material.shininess", shininess);
+        lightingShader.setVec3("material.color", glm::vec3(color[0], color[1], color[2]));
+        lightingShader.setFloat("material.tintStrength", tintStrength);
+        lightingShader.setFloat("material.emissionStrength", emissionStrength);
 
         // view/projection transformations
         glm::mat4 projection = glm::perspective(
@@ -252,11 +286,13 @@ int main() {
         glBindVertexArray(lightCubeVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
-
     }
 
     glDeleteVertexArrays(1, &cubeVAO);
